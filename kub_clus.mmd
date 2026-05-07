@@ -1,0 +1,55 @@
+flowchart LR
+  subgraph external[External]
+    user[Your computer<br/>kubectl]
+    internet[Internet]
+    db[(PostgreSQL)]
+    cdn[CDN]
+    gameapi[Game API]
+  end
+
+  subgraph cluster[Cluster]
+    subgraph controlplane[Control plane]
+      api[Kube API server]
+      sched[Scheduler]
+      cm[Controller Manager]
+    end
+
+    subgraph ingresslayer[Ingress]
+      ic[Ingress Controller]
+      svcBlog[Service: blog]
+      svcGame[Service: game]
+    end
+
+    subgraph node1[Host machine 1 — blog]
+      podBlog1[Pod: blog-app]
+      podBlog2[Pod: blog-app]
+      volBlog[Volume: uploads]
+    end
+
+    subgraph node2[Host machine 2 — game]
+      podGame1[Pod: game-server]
+      podGame2[Pod: game-server]
+      volGame[Volume: saves]
+    end
+
+    subgraph node3[Host machine 3 — mixed]
+      podBlog3[Pod: blog-app]
+      podGame3[Pod: game-server]
+    end
+  end
+
+  user -->|kubectl apply| api
+  api --> sched & cm
+
+  internet -->|HTTP GET| ic
+  ic -->|/blog| svcBlog
+  ic -->|/game| svcGame
+
+  svcBlog --> podBlog1 & podBlog2 & podBlog3
+  svcGame --> podGame1 & podGame2 & podGame3
+
+  podBlog1 & podBlog2 & podBlog3 --> db
+  podBlog1 & podBlog2 --> volBlog
+
+  podGame1 & podGame2 & podGame3 --> gameapi
+  podGame1 & podGame2 --> volGame
