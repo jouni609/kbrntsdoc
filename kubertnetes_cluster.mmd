@@ -1,0 +1,45 @@
+flowchart LR
+  subgraph external[Ulkoiset palvelut]
+    internet[Internetkäyttäjä]
+    user[kubectl]
+    db[(PostgreSQL)]
+    smtp[(SMTP)]
+    storage[(Object Storage<br/>S3 / MinIO)]
+  end
+
+  subgraph cluster[Kubernetes-klusteri]
+    subgraph controlplane[Control plane]
+      api[Kube API server]
+      sched[Scheduler]
+      cm[Controller Manager]
+    end
+
+    subgraph ingress[Ingress-kerros]
+      ic[Ingress Controller]
+      svcWeb[Service: frontend]
+      svcApi[Service: api]
+    end
+
+    subgraph frontend[Frontend-nodet]
+      podWeb1[Pod: frontend<br/>Node 1]
+      podWeb2[Pod: frontend<br/>Node 2]
+    end
+
+    subgraph backend[Backend-nodet]
+      podApi1[Pod: backend<br/>Node 3]
+      podApi2[Pod: backend<br/>Node 4]
+    end
+  end
+
+  user -->|kubectl| api
+  api --> sched & cm
+
+  internet -->|HTTPS| ic
+  ic --> svcWeb --> podWeb1 & podWeb2
+
+  podWeb1 & podWeb2 -->|API_BASE| svcApi
+  svcApi --> podApi1 & podApi2
+
+  podApi1 & podApi2 --> db
+  podApi1 & podApi2 --> smtp
+  podApi1 & podApi2 --> storage
